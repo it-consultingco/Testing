@@ -1,51 +1,51 @@
-#Windows 10 Decrapifier 1803/1809/1903
-#By CSAND
-#June 21 2019
+# Windows 10 Decrapifier 1803/1809/1903
+# By CSAND
+# June 21 2019
 #
 #
-#PURPOSE: Eliminate much of the bloat that comes with Windows 10. Change many privacy settings to be off by default. Remove built-in advertising, Cortana, OneDrive, Cortana stuff (all optional). Disable some data collection.
+# PURPOSE: Eliminate much of the bloat that comes with Windows 10. Change many privacy settings to be off by default. Remove built-in advertising, Cortana, OneDrive, Cortana stuff (all optional). Disable some data collection.
 #		  Clean up the start menu for new user accounts. Remove a bunch of pre-installed apps, or all of them (including the store). Create a more professional looking W10 experience. Changes some settings no longer
 #         available via GPO for Professional edition. 
 #
-#DISCLAIMER: Most of the changes are easily undone, but some like removing the store are difficult to undo. I encourage you to research these changes beforehand, and read through the script.
+# DISCLAIMER: Most of the changes are easily undone, but some like removing the store are difficult to undo. I encourage you to research these changes beforehand, and read through the script.
 #         	 Each section is described with comments, to make it easier to see what's going on.
 #
 #		  
-#INSTRUCTIONS: For best results use the following how-tos. Running from an existing profile on an "in-use" machine won't affect any already-existing user profiles and won't give the best results.
+# INSTRUCTIONS: For best results use the following how-tos. Running from an existing profile on an "in-use" machine won't affect any already-existing user profiles and won't give the best results.
 #			   Read through the script to see what is disabled, and comment out anything you want to keep. By default a transcript is saved at SYSTEMDRIVE\WindowsDCtranscript.txt.
 #
-#Single machine how-to:
-#https://community.spiceworks.com/how_to/148624-how-to-clean-up-a-single-windows-10-machine-image-using-decrapifier
+# Single machine how-to:
+# https://community.spiceworks.com/how_to/148624-how-to-clean-up-a-single-windows-10-machine-image-using-decrapifier
 #
-#Basic MDT how-to:
-#https://community.spiceworks.com/how_to/150455-shoehorn-decrapifier-into-your-mdt-task
-#
-#
-#Join the Spiceworks Decrapifier community group on Spiceworks! 
-#https://community.spiceworks.com/user-groups/windows-decrapifier-group
-#
-#Common questions/issues:
-#https://community.spiceworks.com/topic/2149611-common-questions-and-problems?page=1#entry-7850320
+# Basic MDT how-to:
+# https://community.spiceworks.com/how_to/150455-shoehorn-decrapifier-into-your-mdt-task
 #
 #
-#OFFICIAL DOWNLOAD:
-#https://community.spiceworks.com/scripts/show/4378-windows-10-decrapifier-1803
-#This is the only place I post any updates to this script.
+# Join the Spiceworks Decrapifier community group on Spiceworks! 
+# https://community.spiceworks.com/user-groups/windows-decrapifier-group
 #
-#Changelog:
-#https://community.spiceworks.com/topic/2162951-changelog
+# Common questions/issues:
+# https://community.spiceworks.com/topic/2149611-common-questions-and-problems?page=1#entry-7850320
 #
-#Previous versions:
-#https://community.spiceworks.com/scripts/show/3977-windows-10-decrapifier-1709
-#https://community.spiceworks.com/scripts/show/3298-windows-10-decrapifier-version-1
+#
+# OFFICIAL DOWNLOAD:
+# https://community.spiceworks.com/scripts/show/4378-windows-10-decrapifier-1803
+# This is the only place I post any updates to this script.
+#
+# Changelog:
+# https://community.spiceworks.com/topic/2162951-changelog
+#
+# Previous versions:
+# https://community.spiceworks.com/scripts/show/3977-windows-10-decrapifier-1709
+# https://community.spiceworks.com/scripts/show/3298-windows-10-decrapifier-version-1
 #
 #
 #
 #***Switches***
 # 
-#Switch         Function
+# Switch         Function
 #---------------------------
-#No switches 	Disables unnecessary services and scheduled tasks. Removes all UWP apps except for some useful ones. Disables Cortana, OneDrive, restricts default privacy settings and cleans up the default start menu.
+# No switches 	Disables unnecessary services and scheduled tasks. Removes all UWP apps except for some useful ones. Disables Cortana, OneDrive, restricts default privacy settings and cleans up the default start menu.
 #-AllApps       Removes ALL apps including the store. Make sure this is what you want before you do it. It can be tough to get the store back. Seriously, don't do this unless you are 100% certain.
 #-LeaveTasks    Leaves scheduled tasks alone.
 #-LeaveServices Leaves services alone.
@@ -79,16 +79,20 @@ param (
 
 #------USER EDITABLE VARIABLES - change these to your tastes!------
 
-#Apps to keep. Wildcard is implied so try to be specific enough to not overlap with apps you do want removed. 
-#Make sure not begin or end with a | (vertical line) ex: "app|app2" - good. "|app|app2|" - bad.
+# Apps to keep. Wildcard is implied so try to be specific enough to not overlap with apps you do want removed. 
+# Make sure not begin or end with a | (vertical line) ex: "app|app2" - good. "|app|app2|" - bad.
 
 $GoodApps =	"store|calculator|sticky|windows.photos|soundrecorder|mspaint|screensketch"
 
-#Start Menu XML. If you run the script without -ClearStart, the XML below will be used for a custom start layout. By default it just leaves File Explorer, classic Control Panel, and Snipping Tool tiles.
-#Place your XML like so:
-#	$StartLayourStr = @"
-#	<**YOUR START LAYOUT XML**>
-#	"@
+$LogFolder = "C:\CC IT Consulting\Logs"
+If(!(Test-Path $LogFolder))
+{
+      New-Item -ItemType Directory -Force -Path $LogFolder
+}
+
+$LogFile = "C:\CC IT Consulting\Logs\Windows.10.1903.Decrapifier.log"
+
+# Start Menu XML. If you run the script without -ClearStart, the XML below will be used for a custom start layout. By default it just leaves File Explorer tile.
 
 $StartLayoutStr = @" 
 <LayoutModificationTemplate Version="1" xmlns="http://schemas.microsoft.com/Start/2014/LayoutModification">
@@ -110,11 +114,11 @@ $StartLayoutStr = @"
 
 #---Functions---
 
-#Appx removal
-#Removes all apps or some apps depending on switches used.
+# Appx removal
+# Removes all apps or some apps depending on switches used.
 
 Function RemoveApps {
-	#SafeApps contains apps that shouldn't be removed, or just can't and cause errors
+	# SafeApps contains apps that shouldn't be removed, or just can't and cause errors
 	$SafeApps = "AAD.brokerplugin|accountscontrol|apprep.chxapp|assignedaccess|asynctext|bioenrollment|capturepicker|cloudexperience|contentdelivery|desktopappinstaller|ecapp|getstarted|immersivecontrolpanel|lockapp|net.native|oobenet|parentalcontrols|PPIProjection|sechealth|secureas|shellexperience|vclibs|xaml|XGpuEject"
 	If ($Xbox) {
 		$SafeApps = "$SafeApps|Xbox" 
@@ -125,11 +129,11 @@ Function RemoveApps {
 		$RemovePrApps = Get-AppxProvisionedPackage -online | where-object {$_.displayname -notmatch $SafeApps}
 			ForEach ($RemovedApp in $RemoveApps) {
 				Write-Host Removing app package: $RemovedApp.name
-				Remove-AppxPackage -package $RemovedApp -erroraction silentlycontinue
+				Remove-AppxPackage -package $RemovedApp -ErrorAction Stop
 				
 }			ForEach ($RemovedPrApp in $RemovePrApps) {
 				Write-Host Removing provisioned app $RemovedPrApp.displayname
-				Remove-AppxProvisionedPackage -online -packagename $RemovedPrApp.packagename -erroraction silentlycontinue
+				Remove-AppxProvisionedPackage -online -packagename $RemovedPrApp.packagename -ErrorAction Stop
 				
 }
 }	Else {
@@ -138,66 +142,70 @@ Function RemoveApps {
 		$RemovePrApps = Get-AppxProvisionedPackage -online | where-object {$_.displayname -notmatch $SafeApps}
 			ForEach ($RemovedApp in $RemoveApps) {
 				Write-Host Removing app package: $RemovedApp.name
-				Remove-AppxPackage -package $RemovedApp -erroraction silentlycontinue
+				Remove-AppxPackage -package $RemovedApp -ErrorAction Stop
 				
 }			ForEach ($RemovedPrApp in $RemovePrApps) {
 				Write-Host Removing provisioned app $RemovedPrApp.displayname
-				Remove-AppxProvisionedPackage -online -packagename $RemovedPrApp.packagename -erroraction silentlycontinue
+				Remove-AppxProvisionedPackage -online -packagename $RemovedPrApp.packagename -ErrorAction Stop
 				
 }
 }
-} #End Function RemoveApps
+} # End Function RemoveApps
 		
 	
 	
 	#If ($AllApps) {  
        # Write-Host "***Removing all apps and provisioned appx packages for this machine...***"
 		#2 passes intentional.
-        #Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -erroraction silentlycontinue
-       # Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -erroraction silentlycontinue
-       # Get-AppxProvisionedPackage -online | where-object {$_.displayname -notmatch $SafeApps} |  Remove-AppxProvisionedPackage -online -erroraction silentlycontinue
+        #Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -ErrorAction Stop
+       # Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -ErrorAction Stop
+       # Get-AppxProvisionedPackage -online | where-object {$_.displayname -notmatch $SafeApps} |  Remove-AppxProvisionedPackage -online -ErrorAction Stop
        
 #}    Else {
 		#$SafeApps = "$SafeApps|$GoodApps"
 		#Write-Host "***Removing many apps and provisioned appx packages for this machine...***"
 		#2 passes intentional.		
-        #Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -erroraction silentlycontinue
-        #Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -erroraction silentlycontinue
-        #Get-AppxProvisionedPackage -online | where-object {$_.displayname -notmatch $SafeApps} | Remove-AppxProvisionedPackage -online -erroraction silentlycontinue
+        #Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -ErrorAction Stop
+        #Get-AppxPackage -allusers | where-object {$_.name -notmatch $SafeApps} | Remove-AppxPackage -ErrorAction Stop
+        #Get-AppxProvisionedPackage -online | where-object {$_.displayname -notmatch $SafeApps} | Remove-AppxProvisionedPackage -online -ErrorAction Stop
 #}        
 
 
-#Disable scheduled tasks
+# Disable scheduled tasks
 Function DisableTasks {
     If ($LeaveTasks) {
-        Write-Host "***Leavetasks switch set - leaving scheduled tasks alone...***" 
+		Add-Content -Path $LogFile -Value (Get-Date)-"***-LeaveTasks switch set - leaving scheduled tasks alone...***"
+        Write-Host "***-LeaveTasks switch set - leaving scheduled tasks alone...***" 
 }    Else {
-        Write-Host "***Disabling some unecessary scheduled tasks...***"
-        Get-Scheduledtask "Microsoft Compatibility Appraiser","ProgramDataUpdater","Consolidator","KernelCeipTask","UsbCeip","Microsoft-Windows-DiskDiagnosticDataCollector", "GatherNetworkInfo","QueueReporting" -erroraction silentlycontinue | Disable-scheduledtask 
-}
+		Add-Content -Path $LogFile -Value (Get-Date)-"***Disabling some unecessary scheduled tasks...***"
+		Write-Host "***Disabling some unecessary scheduled tasks...***"
+        Get-Scheduledtask "Microsoft Compatibility Appraiser","ProgramDataUpdater","Consolidator","KernelCeipTask","UsbCeip","Microsoft-Windows-DiskDiagnosticDataCollector", "GatherNetworkInfo","QueueReporting" -ErrorAction Stop | Disable-scheduledtask 
+	}
 }
 
 
 #Disable services
 Function DisableServices {
     If ($LeaveServices) {
-        Write-Host "***Leaveservices switch set - leaving services alone...***"
+		Add-Content -Path $LogFile -Value (Get-Date)-"***-LeaveServices switch set - leaving services alone...***"
+        Write-Host "***-LeaveServices switch set - leaving services alone...***"
 }    Else {
-        Write-Host "***Stopping and disabling some services...***"
+		Add-Content -Path $LogFile -Value (Get-Date)-"***Stopping and disabling some services...***"
+		Write-Host "***Stopping and disabling some services...***"
         #Diagnostics tracking WMP Network Sharing
-		Get-Service Diagtrack,WMPNetworkSvc -erroraction silentlycontinue | stop-service -passthru | set-service -startuptype disabled
+		Get-Service Diagtrack,WMPNetworkSvc -ErrorAction Stop | Stop-Service -PassThru | Set-Service -StartupType Disabled
 		#WAP Push Message Routing  NOTE Sysprep w/ Generalize WILL FAIL if you disable the DmwApPushService. Commented out by default.
-		#Get-Service DmwApPushService -erroraction silentlycontinue | stop-service -passthru | set-service -startuptype disabled
+		#Get-Service DmwApPushService -ErrorAction Stop | stop-service -passthru | set-service -startuptype disabled
 		#Disable OneSync service - Used to sync various apps and settings if you enable that (contacts, etc). Commented out by default to not break functionality.
 		#Get-Service OneSyncSvc | stop-service -passthru | set-service -startuptype disabled
 		
-		#xBox services
+		#Xbox services
 		If ($Xbox){
 }		 Else {
-			#Disable xBox services - "xBox Game Monitoring Service" - XBGM - Can't be disabled (access denied)
-			Get-Service XblAuthManager,XblGameSave,XboxNetApiSvc -erroraction silentlycontinue | stop-service -passthru | set-service -startuptype disabled
-}		
-}
+			#Disable Xbox services - "Xbox Game Monitoring Service" - XBGM - Can't be disabled (access denied)
+			Get-Service XblAuthManager,XblGameSave,XboxNetApiSvc -ErrorAction Stop | stop-service -passthru | set-service -startuptype disabled
+		}		
+	}	
 }
 
         
@@ -218,188 +226,192 @@ Function unloaddefaulthive {
 
 #Cycle registry locations - 1st pass HKCU, 2nd pass default NTUSER.dat
 Function RegChange {
+	Add-Content -Path $LogFile -Value (Get-Date)-"***Applying registry items to HKCU...**"
     Write-Host "***Applying registry items to HKCU...***"
     $reglocation = "HKCU"
     regsetuser
-    $reglocation = "HKLM\AllProfile"
+	$reglocation = "HKLM\AllProfile"
+	Add-Content -Path $LogFile -Value (Get-Date)-"***Applying registry items to default NTUSER.DAT...***"
 	Write-Host "***Applying registry items to default NTUSER.DAT...***"
     loaddefaulthive; regsetuser; unloaddefaulthive
-    $reglocation = $null
+	$reglocation = $null
+	Add-Content -Path $LogFile -Value (Get-Date)-"***Applying registry items to HKLM...***"
 	Write-Host "***Applying registry items to HKLM...***"
-    regsetmachine
+	regsetmachine
+	Add-Content -Path $LogFile -Value (Get-Date)-"***Registry set current user and default user, and policies set for local machine!***"
     Write-Host "***Registry set current user and default user, and policies set for local machine!***"
 }
 
 
-#Set current and default user registry settings
+# Set current and default user registry settings
 Function RegSetUser {
-    #Start menu suggestions
+    # Disable start menu suggestions
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SystemPaneSuggestionsEnabled" /D 0 /F
-	#Show suggested content in settings
+	# Disable suggested content in settings
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-338393Enabled" /D 0 /F
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-353694Enabled" /D 0 /F
-	#Show suggestions occasionally
+	# Disable suggestions occasionally
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-338388Enabled" /D 0 /F
-	#Multitasking - Show suggestions in timeline
+	# Disable suggestions in timeline
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-353698Enabled" /D 0 /F
-    #Lockscreen suggestions, rotating pictures
+    # Disable suggestions and rotating pictures on lockscreen
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SoftLandingEnabled" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "RotatingLockScreenEnabled" /D 0 /F
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "RotatingLockScreenOverlayEnabled" /D 0 /F
-    #Preinstalled apps, Minecraft Twitter etc all that - still need a clean default start menu to fully eliminate
+    # Remove preinstalled apps; Minecraft Twitter etc all that - still need a clean default start menu to fully eliminate
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "PreInstalledAppsEnabled" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "PreInstalledAppsEverEnabled" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "OEMPreInstalledAppsEnabled" /D 0 /F
-    #MS shoehorning apps quietly into your profile
+    # Disable Microsoft pushing apps quietly into your profile
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SilentInstalledAppsEnabled" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "ContentDeliveryAllowed" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContentEnabled" /D 0 /F
-    #Ads in File Explorer
+    # Disable advertisements in File Explorer
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /T REG_DWORD /V "ShowSyncProviderNotifications" /D 0 /F
-	#Show me the Windows welcome experience after updates and occasionally
+	# Disable the Windows welcome experience after updates and occasionally
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-310093Enabled" /D 0 /F
-	#Get tips, tricks, suggestions as you use Windows 
+	# Disable tips, tricks and suggestions as you use Windows 
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-338389Enabled" /D 0 /F
 
-	#Privacy Settings
-	#Let websites provide local content by accessing language list - appears to reset during OOBE.
+	# Privacy Settings
+	# Disable websites providing local content by accessing language list - appears to reset during OOBE.
 	Reg Add "$reglocation\Control Panel\International\User Profile" /T REG_DWORD /V "HttpAcceptLanguageOptOut" /D 1 /F
-    #Ask for feedback
+    # Disable requests for feedback
     Reg Add "$reglocation\SOFTWARE\Microsoft\Siuf\Rules" /T REG_DWORD /V "NumberOfSIUFInPeriod" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\Siuf\Rules" /T REG_DWORD /V "PeriodInNanoSeconds" /D 0 /F
-	#Let apps use advertising ID
+	# Disable applications using advertising ID
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /T REG_DWORD /V "Enabled" /D 0 /F
-	#Let Windows track app launches to improve start and search results - includes run history
+	# Disable Windows tracking app launches to improve start and search results - includes run history
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /T REG_DWORD /V "Start_TrackProgs" /D 0 /F
-	#Tailored experiences - Diagnostics & Feedback settings
+	#  Disable tailored experiences - Diagnostics & Feedback settings
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy" /T REG_DWORD /V "TailoredExperiencesWithDiagnosticDataEnabled" /D 0 /F
-	#Let apps on other devices open messages and apps on this device - Shared Experiences settings
+	# Disable applications on other devices opening messages and applications on this device - Shared Experiences settings
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CDP" /T REG_DWORD /V "RomeSdkChannelUserAuthzPolicy" /D 0 /F
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CDP" /T REG_DWORD /V "CdpSessionUserAuthzPolicy" /D 0 /F
 	
-	#Speech Inking & Typing - comment out if you use the pen\stylus a lot
+	# Disable Speech Inking & Typing - comment out if you use the pen\stylus a lot
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\SettingSync\Groups\Language" /T REG_DWORD /V "Enabled" /D 0 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\InputPersonalization" /T REG_DWORD /V "RestrictImplicitTextCollection" /D 1 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\InputPersonalization" /T REG_DWORD /V "RestrictImplicitInkCollection" /D 1 /F
     Reg Add "$reglocation\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore" /T REG_DWORD /V "HarvestContacts" /D 0 /F
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Personalization\Settings" /T REG_DWORD /V "AcceptedPrivacyPolicy" /D 0 /F
-	#Improve inking & typing recognition
+	#  Disable improve inking & typing recognition
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Input\TIPC" /T REG_DWORD /V "Enabled" /D 0 /F
-	#Pen & Windows Ink - Show recommended app suggestions
+	# Disable Pen & Windows Ink - Show recommended app suggestions
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\PenWorkspace" /T REG_DWORD /V "PenWorkspaceAppSuggestionsEnabled" /D 0 /F
 	
 	#People
-	#Show My People notifications
+	# Disable My People notifications
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People\ShoulderTap" /T REG_DWORD /V "ShoulderTap" /D 0 /F
-	#Show My People app suggestions
+	# Disable My People application suggestions
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /T REG_DWORD /V "SubscribedContent-314563Enabled" /D 0 /F
-	#People on Taskbar
+	# Disable People on Taskbar
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" /T REG_DWORD /V "PeopleBand" /D 0 /F
 	
 	#Other Settings
-	#Use Autoplay for all media and devices
+	# Disable autoplay for all media and devices
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" /T REG_DWORD /V "DisableAutoplay" /D 1 /F
-	#Taskbar search, personal preference. 0 = no search, 1 = search icon, 2 = search bar
+	# Disable taskbar search, personal preference. 0 = no search, 1 = search icon, 2 = search bar
     Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "SearchboxTaskbarMode" /D 0 /F
-	#Allow search to use location if it's enabled
+	# Disable search to use location (if taskbar search is enabled)
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "AllowSearchToUseLocation" /D 0 /F
-	#Do not track - Edge
+	# Do not track - Edge
 	Reg Add "$reglocation\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\Main" /T REG_DWORD /V "DoNotTrack" /D 1 /F
-	#Do not track - IE
+	# Do not track - IE
 	Reg Add "$reglocation\SOFTWARE\Microsoft\Internet Explorer\Main" /T REG_DWORD /V "DoNotTrack" /D 1 /F
 	
 	#--Optional User Settings--
 	
-    #App permissions user settings, these are all available from the settings menu
+    # App permissions user settings, these are all available from the settings menu
     If ($AppAccess) {
 }	 Else{ 	
 		#App permissions
 		#Location - see tablet settings
-		#Camera
+		# Disable Camera
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam" /T REG_SZ /V "Value" /D Deny /F
-		#Microphone
+		# Disable Microphone
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone" /T REG_SZ /V "Value" /D Deny /F
 		#Notifications - doesn't appear to work in 1803, setting hasn't been moved as of 1803 like most of the others
 		#Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\{52079E78-A92B-413F-B213-E8FE35712E72}" /T REG_SZ /V "Value" /D Deny /F
-		#Account Info
+		# Disable Account Info
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userAccountInformation" /T REG_SZ /V "Value" /D Deny /F
-		#Contacts
+		# Disable Contacts
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\contacts" /T REG_SZ /V "Value" /D Deny /F	
-		#Calendar
+		# Disable Calendar
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appointments" /T REG_SZ /V "Value" /D Deny /F
-		#Call history
+		# Disable Call history
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\phoneCallHistory" /T REG_SZ /V "Value" /D Deny /F
-		#Email
+		# Disable Email
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\email" /T REG_SZ /V "Value" /D Deny /F
-		#Tasks
+		# Disable Tasks
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\userDataTasks" /T REG_SZ /V "Value" /D Deny /F
-		#TXT/MMS
+		# Disable TXT/MMS
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\chat" /T REG_SZ /V "Value" /D Deny /F
 		#Radios - doesn't appear to work in 1803, setting hasn't been moved as of 1803 like most of the others
 		#Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\{A8804298-2D5F-42E3-9531-9C8C39EB29CE}" /T REG_SZ /V "Value" /D Deny /F
 		#Other Devices - reset during OOBE
 		#Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\LooselyCoupled" /T REG_SZ /V "Value" /D Deny /F
-		#Cellular Data
+		# Disable Cellular Data
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\cellularData" /T REG_SZ /V "Value" /D Deny /F
-		#Allow apps to run in background global setting - seems to reset during OOBE
+		# Disable applications to run in background global setting - seems to reset during OOBE
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /T REG_DWORD /V "GlobalUserDisabled" /D 1 /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "BackgroundAppGlobalToggle" /D 0 /F	
 		#App Diagnostics - doesn't appear to work in 1803, setting hasn't been moved as of 1803 like most of the others
 		#Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\{2297E4E2-5DBE-466D-A12B-0F8286F0D9CA}" /T REG_SZ /V "Value" /D Deny /F
-		#My Documents
+		# Disable My Documents library
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\documentsLibrary" /T REG_SZ /V "Value" /D Deny /F
-		#My Pictures
+		# Disable My Pictures library
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\picturesLibrary" /T REG_SZ /V "Value" /D Deny /F
-		#My Videos
+		# Disable My Videos library
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\videosLibrary" /T REG_SZ /V "Value" /D Deny /F
-		#File System
+		# Disable File System
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\broadFileSystemAccess" /T REG_SZ /V "Value" /D Deny /F
 }
 	
-	#Disable Cortana - use -Cortana to leave it on
+	# Disable Cortana - use -Cortana to leave it on
 	If ($Cortana){
 }	 Else{
-		#Disable Cortana and Bing search user settings
+		# Disable Cortana and Bing search user settings
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "CortanaEnabled" /D 0 /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "CanCortanaBeEnabled" /D 0 /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "DeviceHistoryEnabled" /D 0 /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "CortanaConsent" /D 0 /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "CortanaInAmbientMode" /D 0 /F
-		#Disable Bing search from start menu/search bar
+		# Disable Bing search from start menu/search bar
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "BingSearchEnabled" /D 0 /F
-		#Disable Cortana on lock screen
+		# Disable Cortana on lock screen
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Speech_OneCore\Preferences" /T REG_DWORD /V "VoiceActivationEnableAboveLockscreen" /D 0 /F
-		#Disable Cortana search history
+		# Disable Cortana search history
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /T REG_DWORD /V "HistoryViewEnabled" /D 0 /F
 }
 
-	#Tablet Settings - use -Tablet switch to leave these on
+	# Tablet Settings - use -Tablet switch to leave these on
 	If ($Tablet) {
 }	 Else {
-		#Deny access to location and sensors
+		# Deny access to location and sensors
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Permissions\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" /T REG_DWORD /V "SensorPermissionState" /D 0 /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" /T REG_SZ /V "Value" /D Deny /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\{E6AD100E-5F4E-44CD-BE0F-2265D88D14F5}" /T REG_SZ /V "Value" /D Deny /F
 		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" /T REG_SZ /V "Value" /D Deny /F
 }
 		
-	#Game settings - use -Xbox to leave these on
+	# Game settings - use -Xbox to leave these on
 	If ($Xbox) {
 }	 Else {
-		#Disable Game DVR
+		# Disable Game DVR
 		Reg Add "$reglocation\System\GameConfigStore" /T REG_DWORD /V "GameDVR_Enabled" /D 0 /F
 }
 	
-	#OneDrive settings - use -OneDrive switch to leave these on
-	If ($OneDrive) {
-}	 Else {
+	#OneDrive settings - use - OneDrive switch to leave these on
+	#If ($OneDrive) {
+#}	 Else {
 		#Disable OneDrive startup run user settings
-		Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" /T REG_BINARY /V "OneDrive" /D 0300000021B9DEB396D7D001 /F
+		#Reg Add "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" /T REG_BINARY /V "OneDrive" /D 0300000021B9DEB396D7D001 /F
 		#Disable automatic OneDrive desktop setup for new accounts
-		If ($reglocation -ne "HKCU") {
-			Reg Delete "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /V "OneDriveSetup" /F
-}
-}
+		#If ($reglocation -ne "HKCU") {
+			#Reg Delete "$reglocation\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /V "OneDriveSetup" /F
+#}
+#}
 
 #End user registry settings
 }
@@ -407,27 +419,25 @@ Function RegSetUser {
 
 #Set local machine settings and local group policies    
 Function RegSetMachine {
-    #--Local GP settings--   CONVERT THESE TO HKCU / DEFAULT / HKLM WHERE POSSIBLE
-    #Can be adjusted in GPedit.msc in Pro+ editions.
-    #Local Policy\Computer Config\Admin Templates\Windows Components			
-    #/Application Compatibility
-    #Turn off Application Telemetry			
+	#--Local GP settings--   CONVERT THESE TO HKCU / DEFAULT / HKLM WHERE POSSIBLE		
+	# Application Compatibility
+    # Disable application telemetry			
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /T REG_DWORD /V "AITEnable" /D 0 /F			
-    #Turn off inventory collector			
+    # Disable inventory collector			
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /T REG_DWORD /V "DisableInventory" /D 1 /F
 
-    #/Cloud Content			
-    #Turn off Consumer Experiences	- Enterprise only (for Pro, HKCU settings and start menu cleanup achieve same result)		
+    # Cloud Content			
+    # Disable Consumer Experiences - Enterprise only (for Pro, HKCU settings and start menu cleanup achieve same result)		
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /T REG_DWORD /V "DisableWindowsConsumerFeatures" /D 1 /F
-	#Turn off all spotlight features	
+	# Disable all spotlight features	
     Reg Add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /T REG_DWORD /V "DisableWindowsSpotlightFeatures" /D 1 /F  
 
-    #/Data Collection and Preview Builds			
-    #Set Telemetry to off (switches to 1:basic for W10Pro and lower)			
+    # Data Collection and Preview Builds			
+    # Set Telemetry to off (switches to 1:basic for W10Pro and lower)			
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /T REG_DWORD /V "AllowTelemetry" /D 0 /F
-    #Disable pre-release features and settings			
+    # Disable pre-release features and settings			
     Reg Add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" /T REG_DWORD /V "EnableConfigFlighting" /D 0 /F
-    #Do not show feedback notifications			
+    # Disable feedback notifications			
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /T REG_DWORD /V "DoNotShowFeedbackNotifications" /D 1 /F
 
     #/Store
@@ -442,79 +452,78 @@ Function RegSetMachine {
     #Disallow users to override this
     #Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync" /T REG_DWORD /V "DisableSettingSyncUserOverride" /D 1 /F
 	
-	#Add "Run as different user" to context menu
+	# Add "Run as different user" to context menu
 	Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /T REG_DWORD /V "ShowRunasDifferentuserinStart" /D 1 /F
 
-    #/Windows Update			
-    #Turn off featured SOFTWARE notifications through Windows Update
+    # Windows Update			
+    # Disable featured SOFTWARE notifications through Windows Update
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /T REG_DWORD /V "EnableFeaturedSoftware" /D 0 /F
 
     #--Non Local GP Settings--		
-    #Delivery Optimization settings - sets to 1 for LAN only, change to 0 for off
+    # Delivery Optimization settings - sets to 1 for LAN only, change to 0 for off
     Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" /T REG_DWORD /V "DownloadMode" /D 1 /F
     Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" /T REG_DWORD /V "DODownloadMode" /D 1 /F
 	Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings" /T REG_DWORD /V "DownloadMode" /D 1 /F
 	
-    #Disabling advertising info and device metadata collection for this machine
+    # Disable advertising info and device metadata collection
     Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /T REG_DWORD /V "Enabled" /D 0 /F
     Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata" /V "PreventDeviceMetadataFromNetwork" /T REG_DWORD /D 1 /F
 
-	#Disable CEIP. GP setting at: Computer Config\Admin Templates\System\Internet Communication Managemen\Internet Communication settings
+	# Disable CEIP. GP setting at: Computer Config\Admin Templates\System\Internet Communication Managemen\Internet Communication settings
     Reg Add "HKLM\SOFTWARE\Microsoft\SQMClient\Windows" /T REG_DWORD /V "CEIPEnable" /D 0 /F
 	
-	#Turn off automatic download/install of store app updates	
+	# Disable automatic download/install of store app updates	
     #Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate" /T REG_DWORD /V "AutoDownload" /D 2 /F	
 	
-	#Prevent using sign-in info to automatically finish setting up after an update
+	# Prevent using sign-in info to automatically finish setting up after an update
     Reg Add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /T REG_DWORD /V "ARSOUserConsent" /D 2 /F
 	
-    #Prevent apps on other devices from opening apps on this one - disables phone pairing
+    # Prevent apps on other devices from opening apps on this one - disables phone pairing
     #Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SmartGlass" /T REG_DWORD /V "UserAuthPolicy" /D 0 /F
     
-    #Enable diagnostic data viewer
+    # Enable diagnostic data viewer
     Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey" /T REG_DWORD /V "EnableEventTranscript" /D 1 /F
 	
-	#Disable Edge desktop shortcut
+	# Disable Edge desktop shortcut
 	Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /T REG_DWORD /V "DisableEdgeDesktopShortcutCreation" /D 1 /F
 	
-	#Filter web content through smartscreen. Left enabled by default.
+	# Filter web content through smartscreen. Left enabled by default.
     #Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost" /T REG_DWORD /V "EnableWebContentEvaluation" /D 0 /F
 
 	#--Optional Machine Settings--
-	
-	#Disable Cortana - use -Cortana to leave it on
+	# Disable Cortana - use -Cortana to leave it on
 	If ($Cortana){
 }	 Else{
     #Cortana local GP - Computer Config\Admin Templates\Windows Components\Search			
-    #Disallow Cortana			
+    # Disallow Cortana			
     Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /T REG_DWORD /V "AllowCortana" /D 0 /F
-    #Disallow Cortana on lock screen - seems pointless with above setting, may be deprecated, covered by HKCU anyways		
-    #Reg Add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /T REG_DWORD /V "AllowCortanaAboveLock" /D 0 /F
+    # Disallow Cortana on lock screen - seems pointless with above setting, may be deprecated, covered by HKCU anyways		
+    Reg Add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /T REG_DWORD /V "AllowCortanaAboveLock" /D 0 /F
 }
 
-	#Tablet Settings - use -Tablet switch to leave these on
+	# Tablet Settings - use -Tablet switch to leave these on
 	If ($Tablet) {
 }	 Else {
 		#Turn off location - global
 		Reg Add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" /T REG_SZ /V "Value" /D Deny /F
 }
 	
-	#Game settings - use -Xbox to leave these on
+	# Game settings - use -Xbox to leave these on
 	If ($Xbox) {
 }	 Else {
-		#Disable Game Monitoring Service
+		# Disable Game Monitoring Service
 		Reg Add "HKLM\SYSTEM\CurrentControlSet\Services\xbgm" /T REG_DWORD /V "Start" /D 4 /F
-		#GameDVR local GP - Computer Config\Admin Templates\Windows Components\Windows Game Recording and Broadcasting
+		# GameDVR local GP - Computer Config\Admin Templates\Windows Components\Windows Game Recording and Broadcasting
 		Reg Add "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" /T REG_DWORD /V "AllowGameDVR" /D 0 /F
 }
 
-	#OneDrive settings - use -OneDrive switch to leave these on
+	# OneDrive settings - use -OneDrive switch to leave these on
 	If ($OneDrive) {
 }	 Else {
-		#Prevent usage of OneDrive local GP - Computer Config\Admin Templates\Windows Components\OneDrive	
+		# Prevent usage of OneDrive local GP - Computer Config\Admin Templates\Windows Components\OneDrive	
 		Reg Add	"HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /T REG_DWORD /V "DisableFileSyncNGSC" /D 1 /F
 		Reg Add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /T REG_DWORD /V "DisableFileSync" /D 1 /F
-		#Remove OneDrive from File Explorer
+		# Remove OneDrive from File Explorer
 		Reg Add "HKCR\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /T REG_DWORD /V "System.IsPinnedToNameSpaceTree" /D 0 /F
 		Reg Add "HKCR\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /T REG_DWORD /V "System.IsPinnedToNameSpaceTree" /D 0 /F
 }
