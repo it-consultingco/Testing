@@ -2,7 +2,6 @@
 # By CSAND
 # June 21 2019
 #
-#
 # PURPOSE: Eliminate much of the bloat that comes with Windows 10. Change many privacy settings to be off by default. Remove built-in advertising, Cortana, OneDrive, Cortana stuff (all optional). Disable some data collection.
 #		  Clean up the start menu for new user accounts. Remove a bunch of pre-installed apps, or all of them (including the store). Create a more professional looking W10 experience. Changes some settings no longer
 #         available via GPO for Professional edition. 
@@ -17,20 +16,8 @@
 # Single machine how-to:
 # https://community.spiceworks.com/how_to/148624-how-to-clean-up-a-single-windows-10-machine-image-using-decrapifier
 #
-# Basic MDT how-to:
-# https://community.spiceworks.com/how_to/150455-shoehorn-decrapifier-into-your-mdt-task
-#
-#
-# Join the Spiceworks Decrapifier community group on Spiceworks! 
-# https://community.spiceworks.com/user-groups/windows-decrapifier-group
-#
-# Common questions/issues:
-# https://community.spiceworks.com/topic/2149611-common-questions-and-problems?page=1#entry-7850320
-#
-#
 # OFFICIAL DOWNLOAD:
 # https://community.spiceworks.com/scripts/show/4378-windows-10-decrapifier-1803
-# This is the only place I post any updates to this script.
 #
 # Changelog:
 # https://community.spiceworks.com/topic/2162951-changelog
@@ -38,7 +25,6 @@
 # Previous versions:
 # https://community.spiceworks.com/scripts/show/3977-windows-10-decrapifier-1709
 # https://community.spiceworks.com/scripts/show/3298-windows-10-decrapifier-version-1
-#
 #
 #
 #***Switches***
@@ -151,9 +137,8 @@ Function RemoveApps {
 }
 }
 } # End Function RemoveApps
-		
-	
-	
+
+
 	#If ($AllApps) {  
        # Write-Host "***Removing all apps and provisioned appx packages for this machine...***"
 		#2 passes intentional.
@@ -179,12 +164,12 @@ Function DisableTasks {
 }    Else {
 		Add-Content -Path $LogFile -Value (Get-Date)-"***Disabling some unecessary scheduled tasks...***"
 		Write-Host "***Disabling some unecessary scheduled tasks...***"
-        Get-Scheduledtask "Microsoft Compatibility Appraiser","ProgramDataUpdater","Consolidator","KernelCeipTask","UsbCeip","Microsoft-Windows-DiskDiagnosticDataCollector", "GatherNetworkInfo","QueueReporting" -ErrorAction Stop | Disable-scheduledtask 
+        Get-Scheduledtask "Microsoft Compatibility Appraiser","ProgramDataUpdater","Consolidator","KernelCeipTask","UsbCeip","Microsoft-Windows-DiskDiagnosticDataCollector", "GatherNetworkInfo","QueueReporting","XblGameSaveTaskLogon","XblGameSaveTask","DmClient","DmClientOnScenarioDownload" -ErrorAction Stop | Disable-scheduledtask 
 	}
 }
 
 
-#Disable services
+# Disable services
 Function DisableServices {
     If ($LeaveServices) {
 		Add-Content -Path $LogFile -Value (Get-Date)-"***-LeaveServices switch set - leaving services alone...***"
@@ -192,39 +177,39 @@ Function DisableServices {
 }    Else {
 		Add-Content -Path $LogFile -Value (Get-Date)-"***Stopping and disabling some services...***"
 		Write-Host "***Stopping and disabling some services...***"
-        #Diagnostics tracking WMP Network Sharing
+        # Diagnostics tracking WMP Network Sharing
 		Get-Service Diagtrack,WMPNetworkSvc -ErrorAction Stop | Stop-Service -PassThru | Set-Service -StartupType Disabled
-		#WAP Push Message Routing  NOTE Sysprep w/ Generalize WILL FAIL if you disable the DmwApPushService. Commented out by default.
-		#Get-Service DmwApPushService -ErrorAction Stop | stop-service -passthru | set-service -startuptype disabled
-		#Disable OneSync service - Used to sync various apps and settings if you enable that (contacts, etc). Commented out by default to not break functionality.
-		#Get-Service OneSyncSvc | stop-service -passthru | set-service -startuptype disabled
+		# WAP Push Message Routing  NOTE Sysprep w/ Generalize WILL FAIL if you disable the DmwApPushService. Commented out by default.
+		# Get-Service DmwApPushService -ErrorAction Stop | stop-service -passthru | set-service -startuptype disabled
+		# Disable OneSync service - Used to sync various apps and settings if you enable that (contacts, etc). Commented out by default to not break functionality.
+		# Get-Service OneSyncSvc | stop-service -passthru | set-service -startuptype disabled
 		
-		#Xbox services
+		# Xbox services
 		If ($Xbox){
 }		 Else {
-			#Disable Xbox services - "Xbox Game Monitoring Service" - XBGM - Can't be disabled (access denied)
+			# Disable Xbox services - "Xbox Game Monitoring Service" - XBGM - Can't be disabled (access denied)
 			Get-Service XblAuthManager,XblGameSave,XboxNetApiSvc -ErrorAction Stop | stop-service -passthru | set-service -startuptype disabled
 		}		
 	}	
 }
 
         
-#Registry change functions
-#Load default user hive
+# Registry change functions
+# Load default user hive
 Function loaddefaulthive {
 	$matjazp72 = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' Default).Default
     reg load "$reglocation" $matjazp72\ntuser.dat
 }
 
 
-#Unload default user hive
+# Unload default user hive
 Function unloaddefaulthive {
     [gc]::collect()
     reg unload "$reglocation"
 }
 
 
-#Cycle registry locations - 1st pass HKCU, 2nd pass default NTUSER.dat
+# Cycle registry locations - 1st pass HKCU, 2nd pass default NTUSER.dat
 Function RegChange {
 	Add-Content -Path $LogFile -Value (Get-Date)-"***Applying registry items to HKCU...**"
     Write-Host "***Applying registry items to HKCU...***"
