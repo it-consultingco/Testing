@@ -1,0 +1,10 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+  
+steps:
+  - checkout: self
+  - script: git push https://$GHPAT@github.com/it-consultingco/Testing.git
+    displayName: 'Push to remote repository'
