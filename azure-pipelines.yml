@@ -6,5 +6,5 @@ pool:
   
 steps:
   - checkout: self
-  - script: git push https://$GHPAT@github.com/it-consultingco/Testing.git
+  - script: git push https://$GHPAT@github.com/it-consultingco/Testing.git HEAD:master
     displayName: 'Push to remote repository'
