@@ -6,6 +6,8 @@ pool:
   
 steps:
   - checkout: self
+  - script: git remote remove origin
+    displayName: 'Cleanup remote origin'
   - script: git remote add origin https://$GHPAT@github.com/it-consultingco/Testing.git
     displayName: 'Add remote origin'
   - script: git push -u origin master
