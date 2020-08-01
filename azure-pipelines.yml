@@ -10,9 +10,7 @@ stages:
     - job: GitPush
       steps:
         - checkout: self
-        - script: git remote remove origin
-          displayName: 'Cleanup remote origin'
         - script: git push https://$(GHPAT)@github.com/it-consultingco/Testing.git HEAD:refs/heads/master
-          displayName: 'Add remote origin'
+          displayName: 'Git push to remote repository'
           env:
             MY_MAPPED_ENV_VAR: $(GHPAT)
