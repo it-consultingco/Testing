@@ -10,7 +10,7 @@ stages:
     - job: GitPush
       steps:
         - checkout: self
-        - script: git push https://$(GHPAT)@github.com/it-consultingco/Testing.git HEAD:refs/heads/master
+        - script: git push https://$(GITHUB-PAT-MON-GITHUB)@github.com/it-consultingco/Testing.git HEAD:refs/heads/master
           displayName: 'Git push to remote repository'
           env:
-            MY_MAPPED_ENV_VAR: $(GHPAT)
+            GITHUB-PAT-MON-GITHUB: $(GITHUB-PAT-MON-GITHUB)
