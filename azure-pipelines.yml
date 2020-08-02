@@ -1,5 +1,5 @@
 variables: 
-- group: 'GITHUB-PAT-MON-GITHUB'
+- group: 'github-pat-mon-github'
 - name: 'github-organisation'
   value: 'it-consultingco'
 - name: 'github-repository'
@@ -17,7 +17,7 @@ stages:
     - job: GitPush
       steps:
         - checkout: self
-        - script: git push https://$(GITHUB-PAT-MON-GITHUB)@github.com/$(github-organisation)/$(github-repository).git HEAD:refs/heads/master
+        - script: git push https://$(github-pat-mon-github)@github.com/$(github-organisation)/$(github-repository).git HEAD:refs/heads/master
           displayName: 'Git push to remote repository'
           env:
-            GITHUB-PAT-MON-GITHUB: $(GITHUB-PAT-MON-GITHUB)
+            github-pat-mon-github: $(github-pat-mon-github)
