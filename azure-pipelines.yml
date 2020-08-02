@@ -1,3 +1,6 @@
+variables: 
+- group: 'GITHUB-PAT-MON-GITHUB'
+
 trigger:
 - master
 
